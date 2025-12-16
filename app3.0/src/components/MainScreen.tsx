@@ -3,7 +3,7 @@ import { Bluetooth, User, MapPin, Calendar, CloudSun, Globe } from 'lucide-react
 import { Language, TRANSLATIONS } from '../config/translations';
 import { APP_CONFIG } from '../config/appConfig';
 import { FarmerData } from './FarmerDetails';
-import { connectToESP32Demo, SensorData } from '../utils/bluetooth';
+import { connectToESP32, SensorData } from '../utils/bluetooth';
 
 interface MainScreenProps {
   language: Language;
@@ -24,25 +24,19 @@ export function MainScreen({
   const [error, setError] = useState<string | null>(null);
 
   const handleConnect = async () => {
-    setIsConnecting(true);
-    setError(null);
+  setIsConnecting(true);
+  setError(null);
 
-    try {
-      // TODO: Replace with real connectToESP32() when you have ESP32 ready
-      // For now, using demo mode with sample data
-      const data = await connectToESP32Demo();
-      
-      // If you want to use real Bluetooth, uncomment this:
-      // const data = await connectToESP32();
-      
+  try {
+    await connectToESP32((data) => {
       onDataReceived(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
-    } finally {
       setIsConnecting(false);
-    }
-  };
-
+    });
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Connection failed');
+    setIsConnecting(false);
+  }
+};
   const getWeatherLabel = (weatherValue: string) => {
     const weather = APP_CONFIG.weatherOptions.find((w) => w.value === weatherValue);
     if (!weather) return weatherValue;
