@@ -1,6 +1,6 @@
 // =====================================================
-// WEB BLUETOOTH UTILITIES FOR ESP32 (SINGLE-SHOT READ)
-// Payload: 2 bytes -> [moisture(0-100), ec(0-100)]
+// WEB BLUETOOTH UTILITIES FOR ESP32 (ONE-SHOT SNAPSHOT)
+// Payload: 2 bytes -> [moisture (0–100), ec (0–100)]
 // =====================================================
 
 export interface SensorData {
@@ -12,15 +12,19 @@ export interface SensorData {
   potassium: number;
 }
 
+// ⚠️ MUST match ESP32 UUIDs exactly
 const ESP32_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const ESP32_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
-function bytesToSensorData(moisture: number, ec: number): SensorData {
-  // Per your current plan:
-  // - moisture stays moisture
-  // - EC shown as TDS + N + P + K (same value for now)
+/**
+ * Convert raw BLE bytes into app-level SensorData
+ * Current logic:
+ * - moisture = moisture
+ * - EC drives TDS + N + P + K (same value for now)
+ */
+function toSensorData(moisture: number, ec: number): SensorData {
   return {
-    pH: 0,
+    pH: 0, // placeholder (future sensor)
     moisture,
     tds: ec,
     nitrogen: ec,
@@ -29,25 +33,33 @@ function bytesToSensorData(moisture: number, ec: number): SensorData {
   };
 }
 
-function parse2Bytes(value: DataView): { moisture: number; ec: number } {
-  if (value.byteLength < 2) {
-    throw new Error(`Expected 2 bytes (moisture, ec) but got ${value.byteLength}`);
+/**
+ * Parse BLE payload
+ * Expected exactly 2 bytes:
+ * [0] -> moisture (0–100)
+ * [1] -> EC (0–100)
+ */
+function parsePayload(value: DataView): { moisture: number; ec: number } {
+  if (value.byteLength !== 2) {
+    throw new Error(`Invalid BLE payload length: ${value.byteLength}`);
   }
-  const moisture = value.getUint8(0);
-  const ec = value.getUint8(1);
-  return { moisture, ec };
+
+  return {
+    moisture: value.getUint8(0),
+    ec: value.getUint8(1),
+  };
 }
 
 /**
- * Connect once and return a single averaged reading.
- * Uses notification first, then readValue() as fallback.
+ * Connect to ESP32, wait for ONE notification,
+ * return snapshot, then disconnect.
  */
 export async function connectToESP32(timeoutMs = 6000): Promise<SensorData> {
   if (!navigator.bluetooth) {
-    throw new Error("Web Bluetooth not supported. Use Chrome on laptop/Android.");
+    throw new Error("Web Bluetooth not supported. Use Chrome.");
   }
 
-  console.log("🔍 Requesting ESP32 device...");
+  console.log("🔍 Requesting ESP32 device…");
 
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ name: "ESP32-SoilSensor" }],
@@ -59,56 +71,51 @@ export async function connectToESP32(timeoutMs = 6000): Promise<SensorData> {
   const server = await device.gatt!.connect();
   console.log("🔗 GATT connected");
 
-  try {
-    const service = await server.getPrimaryService(ESP32_SERVICE_UUID);
-    const characteristic = await service.getCharacteristic(ESP32_CHARACTERISTIC_UUID);
+  const service = await server.getPrimaryService(ESP32_SERVICE_UUID);
+  const characteristic = await service.getCharacteristic(
+    ESP32_CHARACTERISTIC_UUID
+  );
 
-    // --- 1) Try notifications (single shot) ---
-    await characteristic.startNotifications();
-    console.log("📡 Notifications started, waiting for 1 packet...");
+  await characteristic.startNotifications();
+  console.log("📡 Waiting for snapshot…");
 
-    const notifPromise = new Promise<SensorData>((resolve) => {
-      const handler = (event: Event) => {
-        const ch = event.target as BluetoothRemoteGATTCharacteristic;
-        if (!ch.value) return;
+  return new Promise<SensorData>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("No data received from ESP32"));
+    }, timeoutMs);
 
-        try {
-          const { moisture, ec } = parse2Bytes(ch.value);
-          console.log("✅ Notify packet:", { moisture, ec });
+    const handler = (event: Event) => {
+      const ch = event.target as BluetoothRemoteGATTCharacteristic;
+      if (!ch.value) return;
 
-          ch.removeEventListener("characteristicvaluechanged", handler);
-          resolve(bytesToSensorData(moisture, ec));
-        } catch (e) {
-          ch.removeEventListener("characteristicvaluechanged", handler);
-          throw e;
-        }
-      };
+      try {
+        const { moisture, ec } = parsePayload(ch.value);
+        console.log("✅ Snapshot received:", { moisture, ec });
 
-      characteristic.addEventListener("characteristicvaluechanged", handler);
-    });
+        cleanup();
+        resolve(toSensorData(moisture, ec));
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
 
-    const timeoutPromise = new Promise<"timeout">((resolve) =>
-      setTimeout(() => resolve("timeout"), timeoutMs)
+    function cleanup() {
+      clearTimeout(timeout);
+      characteristic.removeEventListener(
+        "characteristicvaluechanged",
+        handler
+      );
+      if (device.gatt?.connected) {
+        device.gatt.disconnect();
+        console.log("🔌 Disconnected");
+      }
+    }
+
+    characteristic.addEventListener(
+      "characteristicvaluechanged",
+      handler
     );
-
-    const result = await Promise.race([notifPromise, timeoutPromise]);
-
-    if (result !== "timeout") {
-      return result;
-    }
-
-    // --- 2) Fallback: readValue() ---
-    console.log("⚠️ No notify received in time, trying readValue() fallback...");
-    const value = await characteristic.readValue();
-    const { moisture, ec } = parse2Bytes(value);
-    console.log("✅ ReadValue packet:", { moisture, ec });
-
-    return bytesToSensorData(moisture, ec);
-  } finally {
-    // Always disconnect cleanly
-    if (device.gatt?.connected) {
-      device.gatt.disconnect();
-      console.log("🔌 Disconnected");
-    }
-  }
+  });
 }
