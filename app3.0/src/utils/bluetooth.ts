@@ -1,6 +1,6 @@
 // =====================================================
 // WEB BLUETOOTH UTILITIES FOR ESP32 (ONE-SHOT SNAPSHOT)
-// Payload: 2 bytes -> [moisture (0–100), ec (0–100)]
+// Payload: 3 bytes -> [moisture (0–100), ec (0–100), pH(0-14)]
 // =====================================================
 
 export interface SensorData {
@@ -22,9 +22,9 @@ const ESP32_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
  * - moisture = moisture
  * - EC drives TDS + N + P + K (same value for now)
  */
-function toSensorData(moisture: number, ec: number): SensorData {
+function toSensorData(moisture: number, ec: number, pH: number): SensorData {
   return {
-    pH: 0, // placeholder (future sensor)
+    pH, // placeholder (future sensor)
     moisture,
     tds: ec,
     nitrogen: ec,
@@ -35,18 +35,20 @@ function toSensorData(moisture: number, ec: number): SensorData {
 
 /**
  * Parse BLE payload
- * Expected exactly 2 bytes:
+ * Expected exactly 3 bytes:
  * [0] -> moisture (0–100)
  * [1] -> EC (0–100)
+ * [2] -> pH x 10(0-100)
  */
-function parsePayload(value: DataView): { moisture: number; ec: number } {
-  if (value.byteLength !== 2) {
-    throw new Error(`Invalid BLE payload length: ${value.byteLength}`);
+function parsePayload(value: DataView): { moisture: number; ec: number; pH: number } {
+  if (value.byteLength < 3) {
+    throw new Error(`Expected 3 bytes but got ${value.byteLength}`);
   }
 
   return {
     moisture: value.getUint8(0),
     ec: value.getUint8(1),
+    pH: value.getUint8(2) / 10, // 👈 undo scaling
   };
 }
 
@@ -90,11 +92,11 @@ export async function connectToESP32(timeoutMs = 6000): Promise<SensorData> {
       if (!ch.value) return;
 
       try {
-        const { moisture, ec } = parsePayload(ch.value);
-        console.log("✅ Snapshot received:", { moisture, ec });
+        const { moisture, ec, pH } = parsePayload(ch.value);
+        console.log("✅ Snapshot received:", { moisture, ec, pH });
 
         cleanup();
-        resolve(toSensorData(moisture, ec));
+        resolve(toSensorData(moisture, ec, pH));
       } catch (err) {
         cleanup();
         reject(err);
