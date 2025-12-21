@@ -24,40 +24,63 @@ export function MainScreen({
   const [error, setError] = useState<string | null>(null);
 
   const handleConnect = async () => {
-  setIsConnecting(true);
-  setError(null);
+    if (isConnecting) return;
 
-  try {
-    await connectToESP32((data) => {
-      onDataReceived(data);
+    setIsConnecting(true);
+    setError(null);
+
+    try {
+      console.log('🔗 Connecting to ESP32…');
+
+      // 🔑 ONE SNAPSHOT, ONE RESULT
+      const data = await connectToESP32();
+
+      console.log('✅ Snapshot received:', data);
+
+      onDataReceived(data); // ⟶ moves to Results screen
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Connection failed');
       setIsConnecting(false);
-    });
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Connection failed');
-    setIsConnecting(false);
-  }
-};
+    }
+  };
+
   const getWeatherLabel = (weatherValue: string) => {
     const weather = APP_CONFIG.weatherOptions.find((w) => w.value === weatherValue);
     if (!weather) return weatherValue;
-    
-    const labelKey = `label${language.charAt(0).toUpperCase() + language.slice(1)}` as 'labelEn' | 'labelHi' | 'labelGu';
+
+    const labelKey =
+      `label${language.charAt(0).toUpperCase() + language.slice(1)}` as
+        | 'labelEn'
+        | 'labelHi'
+        | 'labelGu';
+
     return `${weather.icon} ${weather[labelKey]}`;
   };
 
   const getSeasonLabel = () => {
     const season = APP_CONFIG.seasons.find((s) => s.value === farmerData.season);
     if (!season) return farmerData.season;
-    
-    const labelKey = `label${language.charAt(0).toUpperCase() + language.slice(1)}` as 'labelEn' | 'labelHi' | 'labelGu';
+
+    const labelKey =
+      `label${language.charAt(0).toUpperCase() + language.slice(1)}` as
+        | 'labelEn'
+        | 'labelHi'
+        | 'labelGu';
+
     return season[labelKey];
   };
 
   const getLandUnitLabel = () => {
     const unit = APP_CONFIG.landUnits.find((u) => u.value === farmerData.landUnit);
     if (!unit) return farmerData.landUnit;
-    
-    const labelKey = `label${language.charAt(0).toUpperCase() + language.slice(1)}` as 'labelEn' | 'labelHi' | 'labelGu';
+
+    const labelKey =
+      `label${language.charAt(0).toUpperCase() + language.slice(1)}` as
+        | 'labelEn'
+        | 'labelHi'
+        | 'labelGu';
+
     return unit[labelKey];
   };
 
@@ -85,7 +108,7 @@ export function MainScreen({
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <User style={{ color: APP_CONFIG.colors.primary }} className="w-6 h-6" />
+              <User className="w-6 h-6" style={{ color: APP_CONFIG.colors.primary }} />
               <div>
                 <div className="text-sm" style={{ color: APP_CONFIG.colors.textLight }}>
                   {TRANSLATIONS.farmer[language]}
@@ -110,7 +133,7 @@ export function MainScreen({
           <div className="space-y-3">
             {/* Village */}
             <div className="flex items-center gap-3">
-              <MapPin style={{ color: APP_CONFIG.colors.textLight }} className="w-5 h-5" />
+              <MapPin className="w-5 h-5" style={{ color: APP_CONFIG.colors.textLight }} />
               <div>
                 <div className="text-sm" style={{ color: APP_CONFIG.colors.textLight }}>
                   {TRANSLATIONS.village[language]}
@@ -123,7 +146,7 @@ export function MainScreen({
 
             {/* Land Area */}
             <div className="flex items-center gap-3">
-              <MapPin style={{ color: APP_CONFIG.colors.textLight }} className="w-5 h-5" />
+              <MapPin className="w-5 h-5" style={{ color: APP_CONFIG.colors.textLight }} />
               <div>
                 <div className="text-sm" style={{ color: APP_CONFIG.colors.textLight }}>
                   {TRANSLATIONS.landArea[language]}
@@ -136,7 +159,7 @@ export function MainScreen({
 
             {/* Season */}
             <div className="flex items-center gap-3">
-              <Calendar style={{ color: APP_CONFIG.colors.textLight }} className="w-5 h-5" />
+              <Calendar className="w-5 h-5" style={{ color: APP_CONFIG.colors.textLight }} />
               <div>
                 <div className="text-sm" style={{ color: APP_CONFIG.colors.textLight }}>
                   {TRANSLATIONS.season[language]}
@@ -149,7 +172,7 @@ export function MainScreen({
 
             {/* Weather */}
             <div className="flex items-center gap-3">
-              <CloudSun style={{ color: APP_CONFIG.colors.textLight }} className="w-5 h-5" />
+              <CloudSun className="w-5 h-5" style={{ color: APP_CONFIG.colors.textLight }} />
               <div className="flex-1">
                 <div className="text-sm mb-1" style={{ color: APP_CONFIG.colors.textLight }}>
                   {TRANSLATIONS.weatherLast3Days[language]}
@@ -178,41 +201,20 @@ export function MainScreen({
           <button
             onClick={handleConnect}
             disabled={isConnecting}
-            className="w-full py-6 px-6 rounded-2xl text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
+            className="w-full py-6 px-6 rounded-2xl text-white transition-all disabled:opacity-50"
             style={{ backgroundColor: APP_CONFIG.colors.primary }}
           >
-            <Bluetooth className="w-6 h-6" />
-            <span className="text-lg">
-              {isConnecting
-                ? TRANSLATIONS.connecting[language]
-                : TRANSLATIONS.connectAndRead[language]}
-            </span>
+            <Bluetooth className="w-6 h-6 inline mr-2" />
+            {isConnecting
+              ? TRANSLATIONS.connecting[language]
+              : TRANSLATIONS.connectAndRead[language]}
           </button>
 
           {error && (
-            <div
-              className="w-full p-4 rounded-xl text-center"
-              style={{
-                backgroundColor: '#FFEBEE',
-                color: '#C62828',
-              }}
-            >
+            <div className="w-full p-4 rounded-xl text-center text-red-700 bg-red-100">
               {error}
             </div>
           )}
-
-          {/* Info Note */}
-          <div
-            className="text-center text-sm p-4 rounded-xl"
-            style={{
-              backgroundColor: APP_CONFIG.colors.card,
-              color: APP_CONFIG.colors.textLight,
-            }}
-          >
-            {language === 'hi' && '💡 ESP32 डिवाइस चालू करें और ब्लूटूथ सक्षम करें'}
-            {language === 'en' && '💡 Turn on your ESP32 device and enable Bluetooth'}
-            {language === 'gu' && '💡 તમારું ESP32 ઉપકરણ ચાલુ કરો અને બ્લૂટૂથ સક્ષમ કરો'}
-          </div>
         </div>
       </div>
     </div>
