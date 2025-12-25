@@ -55,7 +55,7 @@ export default defineConfig({
   },
   build: {
   target: 'esnext',
-  outDir: '../docs',
+  outDir: 'dist',
   emptyOutDir: true,
   },
   server: {
