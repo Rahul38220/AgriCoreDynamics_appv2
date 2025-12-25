@@ -9,6 +9,14 @@ import {
   getNutrientStatus,
   getpHStatus,
 } from '../utils/cropRecommendation';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface ResultsScreenProps {
   language: Language;
@@ -31,6 +39,15 @@ export function ResultsScreen({
   );
 
   const fertilizerRecs = getFertilizerRecommendations(sensorData);
+
+  // Mock historical data (simulated previous readings)
+  const ecHistory = [
+    { time: 'T-4', value: 18 },
+    { time: 'T-3', value: 21 },
+    { time: 'T-2', value: 20 },
+    { time: 'T-1', value: 22 },
+    { time: 'Now', value: sensorData.ec },
+  ];
 
   const getWeatherLabel = (weatherValue: string) => {
     const weather = APP_CONFIG.weatherOptions.find((w) => w.value === weatherValue);
@@ -209,6 +226,32 @@ export function ResultsScreen({
                 {getStatusLabel(getNutrientStatus(sensorData.potassium, 'potassium'))}
               </div>
             </div>
+          </div>
+        </div>
+
+	{/* EC Trend Graph */}
+	<div
+  	  className="mt-4 p-4 rounded-xl"
+  	  style={{ backgroundColor: APP_CONFIG.colors.background }}
+	>
+  	  <div className="text-sm mb-1" style={{ color: APP_CONFIG.colors.textLight }}>
+    	    EC Trend
+  	  </div>
+  	  <div className="h-32">
+    	    <ResponsiveContainer width="100%" height="100%">
+      	      <LineChart data={ecHistory}>
+        	<XAxis dataKey="time" tick={{ fontSize: 10 }} />
+        	<YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+        	<Tooltip />
+        	<Line
+          	  type="monotone"
+          	  dataKey="value"
+          	  stroke={APP_CONFIG.colors.primary}
+          	  strokeWidth={2}
+          	  dot={{ r: 3 }}
+        	/>
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
