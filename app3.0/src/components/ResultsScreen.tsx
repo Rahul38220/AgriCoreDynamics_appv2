@@ -42,11 +42,11 @@ export function ResultsScreen({
 
   // Mock historical data (simulated previous readings)
   const ecHistory = [
-    { time: 'T-4', value: 18 },
-    { time: 'T-3', value: 21 },
-    { time: 'T-2', value: 20 },
-    { time: 'T-1', value: 22 },
-    { time: 'Now', value: sensorData.ec },
+    { time: 'T-1', value: 17 },
+    { time: 'T-2', value: 23 },
+    { time: 'T-3', value: 20 },
+    { time: 'T-4', value: 21 },
+    { time: 'Now', value: sensorData.tds },
   ];
 
   const getWeatherLabel = (weatherValue: string) => {
