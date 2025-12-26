@@ -238,7 +238,7 @@ export function ResultsScreen({
     	    EC Trend
   	  </div>
   	  <div className="h-32">
-    	    <ResponsiveContainer width="100%" height="100%">
+    	    <ResponsiveContainer width="100%" height={120}>
       	      <LineChart data={ecHistory}>
         	<XAxis dataKey="time" tick={{ fontSize: 10 }} />
         	<YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
