@@ -92,8 +92,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['गेहूं', 'मक्का', 'मकई'],
       cropsGu: ['ઘઉં', 'મકાઈ', 'કોર્ન'],
       conditions: {
-        pHMin: 6.0,
-        pHMax: 8.5,
         nMin: 50,
         pMin: 30,
         kMin: 50,
@@ -106,8 +104,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['धान', 'चावल'],
       cropsGu: ['ચોખા', 'ડાંગર'],
       conditions: {
-        pHMin: 5.5,
-        pHMax: 7.5,
         moistureMin: 50,
 	nMin: 40,
 	pMin: 25,
@@ -121,8 +117,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['चना', 'दाल', 'मटर'],
       cropsGu: ['ચણા', 'દાળ', 'વટાણા'],
       conditions: {
-        pHMin: 6.0,
-        pHMax: 8.0,
         nMin: 20,
 	pMin: 25,
 	kMin: 25,
@@ -135,8 +129,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['कपास', 'सोयाबीन'],
       cropsGu: ['કપાસ', 'સોયાબીન'],
       conditions: {
-        pHMin: 6.0,
-        pHMax: 8.0,
         nMin: 45,
         pMin: 30,
         kMin: 45,
@@ -149,8 +141,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['गन्ना'],
       cropsGu: ['શેરડી'],
       conditions: {
-        pHMin: 6.0,
-        pHMax: 8.5,
         nMin: 65,
 	pMIn: 40,
         kMin: 65,
@@ -163,8 +153,6 @@ export const CROP_RECOMMENDATIONS = {
       cropsHi: ['आलू', 'सब्जियां'],
       cropsGu: ['બટાકા', 'શાકભાજી'],
       conditions: {
-        pHMin: 5.5,
-        pHMax: 7.0,
 	nMin: 40,
         pMin: 35,
         kMin: 40,

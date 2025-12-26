@@ -40,6 +40,12 @@ export function ResultsScreen({
 
   const fertilizerRecs = getFertilizerRecommendations(sensorData);
 
+  // UI-safe pH value (prevent absurd readings from uncalibrated probe)
+  const displayPH =
+    sensorData.pH < 4 ? 4 :
+    sensorData.pH > 10 ? 10 :
+    sensorData.pH;
+
   // Mock historical data (simulated previous readings)
   const ecHistory = [
     { time: 'T-1', value: 17 },
@@ -134,13 +140,13 @@ export function ResultsScreen({
                 pH
               </div>
               <div className="text-2xl mb-1" style={{ color: APP_CONFIG.colors.text }}>
-                {sensorData.pH.toFixed(1)}
+                {displayPH.toFixed(1)}
               </div>
               <div
                 className="text-sm"
                 style={{ color: getStatusColor(getpHStatus(sensorData.pH)) }}
               >
-                {getStatusLabel(getpHStatus(sensorData.pH))}
+                {getStatusLabel(getpHStatus(displayPH))}
               </div>
             </div>
 
